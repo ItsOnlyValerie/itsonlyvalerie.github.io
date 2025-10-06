@@ -1,0 +1,27 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #e3f2fd;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding-bottom: 480px; /* Prevent content from being hidden behind the wave */
+}
+
+h1 {
+  text-align: center;
+  margin-top: 40px;
+  color: #1565c0;
+}
+
+/* Make the wave stick to the bottom and stretch edge-to-edge */
+.wave {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100vw;
+  min-width: 100vw;
+  z-index: 10;
+  pointer-events: none;
+}

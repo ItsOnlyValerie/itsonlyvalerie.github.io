@@ -1,3 +1,5 @@
+
+
 body {
   margin: 0;
   font-family: sans-serif;
@@ -7,21 +9,40 @@ body {
   overflow: hidden;
   box-sizing: border-box;
   padding-bottom: 480px; /* Prevent content from being hidden behind the wave */
+  transition: background 0.3s;
+}
+
+body.dark-mode {
+  width: 100%;
+  overflow-x: hidden;
+  background: #111927;
 }
 
 h1 {
   text-align: center;
   margin-top: 40px;
   color: #1565c0;
+  transition: color 0.3s;
 }
 
-/* Make the wave stick to the bottom and stretch edge-to-edge */
-.wave {
+body.dark-mode h1 {
+  color: #90caf9;
+}
+
+body.dark-mode .wave #animated-wave-path {
+  fill: #1565c0;
+}
+body.dark-mode .wave #background-wave-path {
+  fill: #1976d2;
+}
+ .wave {
   position: fixed;
   left: 0;
   bottom: 0;
   width: 100vw;
-  min-width: 100vw;
+  height: 560px; /* tallest wave SVG */
   z-index: 10;
   pointer-events: none;
+  margin: 0;
+  padding: 0;
 }

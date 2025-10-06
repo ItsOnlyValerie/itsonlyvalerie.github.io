@@ -1,18 +1,14 @@
 // Animated SVG wave inspired by react-wavify
 
-const amplitude = 20; // wave height
-const speed = 0.002; // animation speed
+const amplitude = 14; // wave height
+const speed = 0.0012; // animation speed
 const points = 20; // number of control points
-const height = 480; // SVG height for foreground
-const bgHeight = 560; // SVG height for background
-const bgAmplitude = 16; // background wave height
-const bgSpeed = 0.001; // animation speed for background wave
+const height = 560; // SVG height for foreground
+const bgHeight = 600; // SVG height for background
+const bgAmplitude = 10; // background wave height
+const bgSpeed = 0.0007; // animation speed for background wave
 
 function getWaveWidth() {
-  const svg = document.getElementById('animated-wave-svg');
-  if (svg && svg.parentElement) {
-    return svg.parentElement.offsetWidth;
-  }
   return window.innerWidth;
 }
 let width = getWaveWidth();
@@ -25,7 +21,10 @@ function generateWavePath(t, amp = amplitude, h = height, phaseOffset = 0, custo
   let pointsArray = [];
   const phaseStep = (2 * Math.PI) / (points - 1);
   for (let i = 0; i < points; i++) {
-    const x = i * segmentWidth;
+    // Clamp x to exactly 0 for first point and width for last point
+    let x = i * segmentWidth;
+    if (i === 0) x = 0;
+    if (i === points - 1) x = width;
     const phase = t * customSpeed + (i * phaseStep) + phaseOffset;
     const y = Math.sin(phase) * amp + h / 2;
     pointsArray.push({ x, y });
@@ -55,10 +54,12 @@ function resizeWave() {
   const svg = document.getElementById('animated-wave-svg');
   if (svg) {
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.setAttribute('width', `${width}`);
   }
   const bgsvg = document.getElementById('background-wave-svg');
   if (bgsvg) {
     bgsvg.setAttribute('viewBox', `0 0 ${width} ${bgHeight}`);
+    bgsvg.setAttribute('width', `${width}`);
   }
 }
 

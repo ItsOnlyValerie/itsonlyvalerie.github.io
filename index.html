@@ -5,15 +5,69 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+        <button id="toggle-mode" style="position: absolute; top: 20px; right: 20px; z-index: 100; padding: 18px 22px; border-radius: 12px; border: none; background: transparent; color: #111; font-weight: bold; cursor: pointer; box-shadow: none; outline: none; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; width: 64px; height: 64px; transition: background 0.3s, color 0.3s;">
+            <span id="toggle-icon" aria-hidden="true"></span>
+        </button>
     <h1>You found my corner of the web!</h1>
         <div class="wave">
-            <svg id="background-wave-svg" width="100%" height="560" viewBox="0 0 1440 560" xmlns="http://www.w3.org/2000/svg" style="display:block; position:absolute; left:0; bottom:0; z-index:1;">
+            <svg id="background-wave-svg" width="100vw" height="560" viewBox="0 0 1440 560" xmlns="http://www.w3.org/2000/svg" style="display:block; position:absolute; left:0; bottom:0; z-index:1; width:100vw; margin:0; padding:0;" preserveAspectRatio="none">
                 <path id="background-wave-path" fill="#4fc3f7" d=""/>
             </svg>
-            <svg id="animated-wave-svg" width="100%" height="480" viewBox="0 0 1440 480" xmlns="http://www.w3.org/2000/svg" style="display:block; position:relative; z-index:2;">
+            <svg id="animated-wave-svg" width="100vw" height="480" viewBox="0 0 1440 480" xmlns="http://www.w3.org/2000/svg" style="display:block; position:absolute; left:0; bottom:0; z-index:2; width:100vw; margin:0; padding:0;" preserveAspectRatio="none">
                 <path id="animated-wave-path" fill="#39a0ed" d="M 0 80 L 480 80 L 960 80 L 1440 80 L 1440 160 L 0 160 Z"/>
             </svg>
         </div>
 </body>
 <script src="wave.js"></script>
+
+<script>
+
+const btn = document.getElementById('toggle-mode');
+const icon = document.getElementById('toggle-icon');
+const body = document.body;
+let dark = false;
+
+const moonSVG = `<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M28 25.5C25.5 27.5 22.5 29 19 29C12.3726 29 7 23.6274 7 17C7 12.5 9.5 8.5 13 6.5C12.5 7.5 12 9 12 11C12 18.1797 18.8203 25 26 25C26.75 25 27.5 25.25 28 25.5Z" fill="#111"/></svg>`;
+const sunSVG = `<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="8" fill="#fff"/><g stroke="#fff" stroke-width="2"><line x1="18" y1="2" x2="18" y2="7"/><line x1="18" y1="29" x2="18" y2="34"/><line x1="2" y1="18" x2="7" y2="18"/><line x1="29" y1="18" x2="34" y2="18"/><line x1="6.22" y1="6.22" x2="9.9" y2="9.9"/><line x1="26.1" y1="26.1" x2="29.78" y2="29.78"/><line x1="6.22" y1="29.78" x2="9.9" y2="26.1"/><line x1="26.1" y1="9.9" x2="29.78" y2="6.22"/></g></svg>`;
+
+function updateToggleIcon() {
+        if (dark) {
+            icon.innerHTML = sunSVG;
+            btn.style.background = 'transparent';
+            btn.style.color = '#fff';
+        } else {
+            icon.innerHTML = moonSVG;
+            btn.style.background = 'transparent';
+            btn.style.color = '#111';
+        }
+}
+
+btn.addEventListener('click', () => {
+        dark = !dark;
+        if (dark) {
+                body.classList.add('dark-mode');
+        } else {
+                body.classList.remove('dark-mode');
+        }
+        updateToggleIcon();
+});
+
+// Auto-switch mode based on local time (dark: 7pm-7am, light: 7am-7pm)
+function autoSetModeByTime() {
+    const hour = new Date().getHours();
+    const shouldBeDark = (hour >= 19 || hour < 7);
+    if (shouldBeDark !== dark) {
+        dark = shouldBeDark;
+        if (dark) {
+            body.classList.add('dark-mode');
+        } else {
+            body.classList.remove('dark-mode');
+        }
+        updateToggleIcon();
+    }
+}
+
+autoSetModeByTime();
+updateToggleIcon();
+</script>
 </html>

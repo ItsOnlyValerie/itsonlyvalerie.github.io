@@ -178,12 +178,25 @@ form.onsubmit = async (e) => {
 };
 
 // --- Guestbook message display logic ---
+
 let guestbookMessages = [];
+let shuffledMessages = [];
 let currentStart = 0;
+let lastMessageIds = [];
 
 const maxVisible = 3;
 const cycleInterval = 4000;
 let cycleTimer = null;
+
+function shuffleArray(arr) {
+    // Fisher-Yates shuffle
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
 
 function getLoopedMessages(start, count, arr) {
     const result = [];
@@ -196,8 +209,8 @@ function getLoopedMessages(start, count, arr) {
 function renderGuestbookToasts() {
     // Clear container before adding new toasts
     toastContainer.innerHTML = '';
-    if (guestbookMessages.length === 0) return;
-    const visible = getLoopedMessages(currentStart, Math.min(maxVisible, guestbookMessages.length), guestbookMessages);
+    if (shuffledMessages.length === 0) return;
+    const visible = getLoopedMessages(currentStart, Math.min(maxVisible, shuffledMessages.length), shuffledMessages);
     visible.forEach((msg, idx) => {
         const toast = document.createElement('div');
         toast.className = 'guestbook-toast';
@@ -217,6 +230,8 @@ function renderGuestbookToasts() {
         toast.innerHTML = `<b>${msg.name}</b>: ${msg.message}`;
         toast.style.transform = 'translateY(30px)';
         toastContainer.appendChild(toast);
+        // Force reflow to ensure transition always triggers
+        void toast.offsetHeight;
         // Trigger entry transition
         setTimeout(() => {
             toast.style.opacity = (idx === 0 && visible.length === maxVisible) ? '0.5' : '0.97';
@@ -227,9 +242,13 @@ function renderGuestbookToasts() {
 
 function startGuestbookCycle() {
     if (cycleTimer) clearInterval(cycleTimer);
-    if (guestbookMessages.length > 1) {
+    if (shuffledMessages.length > 1) {
         cycleTimer = setInterval(() => {
-            currentStart = (currentStart + 1) % guestbookMessages.length;
+            currentStart = (currentStart + 1) % shuffledMessages.length;
+            // If we've cycled through all, reshuffle for next round
+            if (currentStart === 0) {
+                shuffledMessages = shuffleArray(guestbookMessages);
+            }
             renderGuestbookToasts();
         }, cycleInterval);
     }
@@ -237,15 +256,37 @@ function startGuestbookCycle() {
 
 const q = query(collection(db, 'guestbook'), orderBy('created', 'desc'), limit(10));
 onSnapshot(q, (snapshot) => {
-    guestbookMessages = [];
+    const newMessages = [];
+    const newIds = [];
     snapshot.forEach(doc => {
         const data = doc.data();
         if (data.name && data.message) {
-            guestbookMessages.push({ name: data.name, message: data.message });
+            newMessages.push({ name: data.name, message: data.message, _id: doc.id });
+            newIds.push(doc.id);
         }
     });
-    guestbookMessages.reverse(); // oldest first, newest last
-    currentStart = 0;
+    newMessages.reverse(); // oldest first, newest last
+    // Detect new message(s)
+    let newMsgObj = null;
+    if (lastMessageIds.length > 0 && newIds.length > lastMessageIds.length) {
+        for (let i = 0; i < newIds.length; i++) {
+            if (!lastMessageIds.includes(newIds[i])) {
+                newMsgObj = newMessages.find(m => m._id === newIds[i]);
+                break;
+            }
+        }
+    }
+    guestbookMessages = newMessages.map(({_id, ...rest}) => rest);
+    // Remove _id for display
+    if (newMsgObj) {
+        // Place new message at the front of the shuffled array
+        shuffledMessages = [ { name: newMsgObj.name, message: newMsgObj.message }, ...shuffleArray(guestbookMessages.filter(m => !(m.name === newMsgObj.name && m.message === newMsgObj.message))) ];
+        currentStart = 0;
+    } else {
+        shuffledMessages = shuffleArray(guestbookMessages);
+        currentStart = 0;
+    }
+    lastMessageIds = newIds;
     renderGuestbookToasts();
     startGuestbookCycle();
 });

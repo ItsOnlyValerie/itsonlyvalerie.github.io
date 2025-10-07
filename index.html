@@ -66,12 +66,61 @@ btn.onclick = () => {
 };
 cancel.onclick = () => { modal.style.display = 'none'; };
 
+// --- Bad link and profanity filter ---
+const BAD_DOMAINS = [
+  'phishing.com', 'malware.com', 'badsite.net', 'scamdomain.org', 'abuse.ch', 'openphish.com', 'phishtank.com'
+];
+const PROFANITIES = [
+  'Africoon', 'Africoon-Americoon', 'Africoonia', 'Americoon', 'Americunt', 'AmeriKKKunt', 'antifaggot', 'antinigger', 'Ashke-Nazi', 'assfuck', 'assjockey', 'asslicker', 'asswhore', 'beaner', 'Chankoro', 'Chink', 'Choc-ice', 'clamdigger', 'coon', 'Coon-ass', 'cumqueen', 'cunnilingus', 'cunteyed', 'cuntfucker', 'cuntlicker', 'datnigga', 'dicklicker','Dothead', 'fag', 'fagot', 'fatfuck', 'Gypsy', 'hobo', 'homobangers', 'Hymie', 'Indognesial', 'Indonesial', 'Jigaboo', 'jigga', 'jiggabo', 'jigger', 'kunt', 'kyk', 'Laowai', 'Leb', 'molester', 'Munt', 'nigger', 'niggerhole', 'niggers', 'niggles', 'niggling', 'nlgger', 'nlggor', 'Porch-monkey', 'porchmonkey', 'prostitute', 'Redskin', 'retard', 'sexslave', 'sextogo', 'Sheboon', 'shitnigger', 'slanteye', 'slavedriver', 'slut', 'sluts', 'slutt', 'sniggers', 'snownigger', 'spaghettinigge', 'Spearchucker', 'Timber-nigger', 'White-trash', 'whitetrash', 'Wigger', 'Wuhan-virus', 'Yuon', 'zigabo'
+  // I didn't type these out I swear ;-;
+];
+
 function filterMessage(msg) {
-    // Remove links and some bad words
-    let filtered = msg.replace(/https?:\/\/\S+/gi, '[link removed]');
-    filtered = filtered.replace(/www\.[^\s]+/gi, '[link removed]');
-    // Add more filters as needed
+    // Only block links from known bad domains, allow safe links
+    let filtered = msg.replace(/https?:\/\/\S+/gi, function(link) {
+        try {
+            const url = new URL(link);
+            if (BAD_DOMAINS.some(domain => url.hostname.includes(domain))) {
+                return '[blocked malicious link]';
+            }
+        } catch (e) {}
+        return link; // allow safe link
+    });
+    filtered = filtered.replace(/www\.[^\s]+/gi, function(link) {
+        try {
+            const hostname = link.split('/')[0].replace('www.', '');
+            if (BAD_DOMAINS.some(domain => hostname.includes(domain))) {
+                return '[blocked malicious link]';
+            }
+        } catch (e) {}
+        return link; // allow safe link
+    });
+    // Profanity filter (replace with asterisks)
+    PROFANITIES.forEach(word => {
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
+        filtered = filtered.replace(regex, '*'.repeat(word.length));
+    });
     return filtered;
+}
+
+function containsBadLink(msg) {
+    // Check for http(s) and www links
+    const urlRegex = /https?:\/\/[^\s]+|www\.[^\s]+/gi;
+    const links = msg.match(urlRegex) || [];
+    for (const link of links) {
+        try {
+            let hostname = '';
+            if (link.startsWith('http')) {
+                hostname = new URL(link).hostname;
+            } else if (link.startsWith('www.')) {
+                hostname = link.split('/')[0].replace('www.', '');
+            }
+            if (BAD_DOMAINS.some(domain => hostname.includes(domain))) {
+                return true;
+            }
+        } catch (e) {}
+    }
+    return false;
 }
 
 form.onsubmit = async (e) => {
@@ -97,6 +146,11 @@ form.onsubmit = async (e) => {
         errorDiv.style.display = 'block';
         return;
     }
+    if (containsBadLink(message) || containsProfanity(message)) {
+        errorDiv.textContent = "Please don't post bad stuff in here!";
+        errorDiv.style.display = 'block';
+        return;
+    }
     message = filterMessage(message);
     try {
         await addDoc(collection(db, 'guestbook'), {
@@ -116,15 +170,27 @@ form.onsubmit = async (e) => {
 // --- Guestbook message display logic ---
 let guestbookMessages = [];
 let currentStart = 0;
+
 const maxVisible = 3;
 const cycleInterval = 4000;
 let cycleTimer = null;
 
+function getLoopedMessages(start, count, arr) {
+    const result = [];
+    for (let i = 0; i < count; i++) {
+        result.push(arr[(start + i) % arr.length]);
+    }
+    return result;
+}
+
 function renderGuestbookToasts() {
+    // Clear container before adding new toasts
     toastContainer.innerHTML = '';
-    const visible = guestbookMessages.slice(currentStart, currentStart + maxVisible);
+    if (guestbookMessages.length === 0) return;
+    const visible = getLoopedMessages(currentStart, Math.min(maxVisible, guestbookMessages.length), guestbookMessages);
     visible.forEach((msg, idx) => {
         const toast = document.createElement('div');
+        toast.className = 'guestbook-toast';
         toast.style.background = '#fff';
         toast.style.color = '#1976d2';
         toast.style.borderRadius = '10px';
@@ -137,18 +203,23 @@ function renderGuestbookToasts() {
         toast.style.wordBreak = 'break-word';
         toast.style.width = 'fit-content';
         toast.style.margin = '0 0 0 0';
-        toast.style.opacity = (idx === 0 && visible.length === maxVisible) ? '0.5' : '0.97';
-        toast.style.transition = 'opacity 0.7s';
+        toast.style.opacity = '0';
         toast.innerHTML = `<b>${msg.name}</b>: ${msg.message}`;
+        toast.style.transform = 'translateY(30px)';
         toastContainer.appendChild(toast);
+        // Trigger entry transition
+        setTimeout(() => {
+            toast.style.opacity = (idx === 0 && visible.length === maxVisible) ? '0.5' : '0.97';
+            toast.style.transform = 'translateY(0)';
+        }, 10);
     });
 }
 
 function startGuestbookCycle() {
     if (cycleTimer) clearInterval(cycleTimer);
-    if (guestbookMessages.length > maxVisible) {
+    if (guestbookMessages.length > 1) {
         cycleTimer = setInterval(() => {
-            currentStart = (currentStart + 1) % (guestbookMessages.length - maxVisible + 1);
+            currentStart = (currentStart + 1) % guestbookMessages.length;
             renderGuestbookToasts();
         }, cycleInterval);
     }
@@ -174,21 +245,24 @@ onSnapshot(q, (snapshot) => {
 <head>
     <title>Valerie's Hideout</title>
     <meta property="og:title" content="Valerie's Hideout" />
-    <meta property="og:description" content="Welcome to Valerie's Hideout! Game developer, artist, cat lover, and more." />
+    <meta property="og:description" content="Welcome to my little corner of the internet!" />
     <!-- <meta property="og:image" content="images/og-image.png" /> -->
     <meta property="og:url" content="https://itsonlyvalerie.github.io/" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Valerie's Hideout" />
-    <meta name="twitter:description" content="Welcome to Valerie's Hideout! Game developer, artist, cat lover, and more." />
+    <meta name="twitter:description" content="Welcome to my little corner of the internet!" />
     <!-- <meta name="twitter:image" content="images/og-image.png" /> -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <a href="https://github.com/ItsOnlyValerie" target="_blank" rel="noopener" id="github-btn" style="position: absolute; top: 20px; right: 100px; z-index: 101; padding: 14px 18px; border-radius: 12px; border: none; background: transparent; color: #fff; font-weight: bold; cursor: pointer; box-shadow: none; outline: none; display: flex; align-items: center; justify-content: center; font-size: 2rem; width: 56px; height: 56px; transition: background 0.3s, color 0.3s; text-decoration: none;">
+            <svg height="32" width="32" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" style="display:block;"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+        </a>
         <button id="toggle-mode" style="position: absolute; top: 20px; right: 20px; z-index: 100; padding: 18px 22px; border-radius: 12px; border: none; background: transparent; color: #111; font-weight: bold; cursor: pointer; box-shadow: none; outline: none; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; width: 64px; height: 64px; transition: background 0.3s, color 0.3s;">
             <span id="toggle-icon" aria-hidden="true"></span>
         </button>
-    <h1 style="margin-bottom: 0;">Valerie's Hideout</h1>
+    <h1 style="margin-bottom: 0;">Valerie</h1>
     <div id="typewriter-line" style="text-align:center;font-size:1.3rem;color:#1565c0;margin-bottom:24px;min-height:2.2em;"><span id="typewriter-symbol">✦</span> <span id="typewriter-text"></span><span id="typewriter-cursor">|</span></div>
 <script>
 // --- Typewriter effect for cycling experience ---
@@ -232,7 +306,7 @@ setInterval(() => {
         <div class="blog-box">
             <div class="blog-title">My First Blog Post</div>
             <div class="blog-date">October 7, 2025</div>
-            <div class="blog-content">Welcome to Valerie's Hideout! This is where I will be posting my blogs showcasing what I've been working on. Hope you enjoy your stay!</div>
+            <div class="blog-content">Welcome to the website! This is where I will be posting my blogs showcasing what I've been working on. Hope you enjoy your stay!</div>
             <!--
             Example for a new blog post (remember to put this above the existing posts):
             <div class="blog-title">Your New Blog Title</div>

@@ -1,14 +1,245 @@
+</div>
+<!-- Guestbook Floating Button and Form -->
+<button id="guestbook-btn" style="position:fixed;bottom:32px;right:32px;z-index:1000;background:#1976d2;color:#fff;border:none;border-radius:50%;width:56px;height:56px;box-shadow:0 2px 12px rgba(0,0,0,0.18);font-size:2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.3s;">
+    💬
+</button>
+<div id="guestbook-modal" style="display:none;position:fixed;bottom:100px;right:32px;z-index:1001;background:#fff;padding:24px 20px 16px 20px;border-radius:16px;box-shadow:0 4px 32px rgba(0,0,0,0.18);width:320px;max-width:90vw;">
+    <form id="guestbook-form" autocomplete="off">
+        <div style="font-weight:bold;font-size:1.2rem;margin-bottom:8px;">Guestbook</div>
+        <input id="guestbook-name" type="text" maxlength="32" placeholder="Your name" style="width:100%;margin-bottom:8px;padding:8px 10px;border-radius:6px;border:1px solid #bbb;font-size:1rem;" required />
+                <div style="position:relative;display:flex;align-items:center;margin-bottom:8px;">
+                    <textarea id="guestbook-message" maxlength="200" placeholder="Your message (max 200 chars)" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #bbb;font-size:1rem;resize:none;" required></textarea>
+                    <button type="button" id="emoji-picker-btn" style="margin-left:6px;font-size:1.3rem;background:transparent;border:none;cursor:pointer;" title="Add emoji">😊</button>
+                </div>
+                <div style="margin-bottom:8px;">
+            <label id="guestbook-captcha-label" for="guestbook-captcha"></label>
+            <input id="guestbook-captcha" type="text" maxlength="3" style="width:32px;text-align:center;" required />
+        </div>
+        <button type="submit" style="background:#1976d2;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:1rem;cursor:pointer;">Sign</button>
+        <button type="button" id="guestbook-cancel" style="background:transparent;color:#1976d2;border:none;padding:8px 10px;font-size:1rem;cursor:pointer;float:right;">Cancel</button>
+        <div id="guestbook-error" style="color:#d32f2f;font-size:0.95rem;margin-top:8px;display:none;"></div>
+    </form>
+</div>
+<div id="guestbook-toast-container" style="position:fixed;bottom:16px;left:16px;z-index:1002;display:flex;flex-direction:column;gap:10px;"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCg-lyuk3TlmWgfud9aFWXSArlY80StIDI",
+    authDomain: "website-guestbook-cfbab.firebaseapp.com",
+    projectId: "website-guestbook-cfbab",
+    storageBucket: "website-guestbook-cfbab.firebasestorage.app",
+    messagingSenderId: "172090640385",
+    appId: "1:172090640385:web:e164764a65c786144f1800"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// --- Guestbook UI logic ---
+const btn = document.getElementById('guestbook-btn');
+const modal = document.getElementById('guestbook-modal');
+const form = document.getElementById('guestbook-form');
+const cancel = document.getElementById('guestbook-cancel');
+
+const errorDiv = document.getElementById('guestbook-error');
+const toastContainer = document.getElementById('guestbook-toast-container');
+const captchaLabel = document.getElementById('guestbook-captcha-label');
+const captchaInput = document.getElementById('guestbook-captcha');
+
+// Captcha logic
+let captchaAnswer = '';
+function randomizeCaptcha() {
+    // Simple math captcha
+    const a = Math.floor(Math.random() * 10) + 1;
+    const b = Math.floor(Math.random() * 10) + 1;
+    captchaAnswer = (a + b).toString();
+    captchaLabel.textContent = `What is ${a} + ${b}? `;
+    captchaInput.value = '';
+}
+
+btn.onclick = () => {
+    modal.style.display = 'block';
+    errorDiv.style.display = 'none';
+    randomizeCaptcha();
+};
+cancel.onclick = () => { modal.style.display = 'none'; };
+
+function filterMessage(msg) {
+    // Remove links and some bad words
+    let filtered = msg.replace(/https?:\/\/\S+/gi, '[link removed]');
+    filtered = filtered.replace(/www\.[^\s]+/gi, '[link removed]');
+    // Add more filters as needed
+    return filtered;
+}
+
+form.onsubmit = async (e) => {
+    e.preventDefault();
+    errorDiv.style.display = 'none';
+    // Check if this browser has already submitted
+    if (localStorage.getItem('guestbook_submitted') === 'yes') {
+        errorDiv.textContent = 'You have already signed the guestbook from this browser!';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    const name = form['guestbook-name'].value.trim();
+    let message = form['guestbook-message'].value.trim();
+    const captcha = captchaInput.value.trim();
+    if (captcha !== captchaAnswer) {
+        errorDiv.textContent = 'Captcha incorrect!';
+        errorDiv.style.display = 'block';
+        randomizeCaptcha();
+        return;
+    }
+    if (!name || !message) {
+        errorDiv.textContent = 'Please fill in all fields.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    message = filterMessage(message);
+    try {
+        await addDoc(collection(db, 'guestbook'), {
+            name,
+            message,
+            created: serverTimestamp()
+        });
+        localStorage.setItem('guestbook_submitted', 'yes');
+        modal.style.display = 'none';
+        form.reset();
+    } catch (err) {
+        errorDiv.textContent = 'Error saving message.';
+        errorDiv.style.display = 'block';
+    }
+};
+
+// --- Guestbook message display logic ---
+let guestbookMessages = [];
+let currentStart = 0;
+const maxVisible = 3;
+const cycleInterval = 4000;
+let cycleTimer = null;
+
+function renderGuestbookToasts() {
+    toastContainer.innerHTML = '';
+    const visible = guestbookMessages.slice(currentStart, currentStart + maxVisible);
+    visible.forEach((msg, idx) => {
+        const toast = document.createElement('div');
+        toast.style.background = '#fff';
+        toast.style.color = '#1976d2';
+        toast.style.borderRadius = '10px';
+        toast.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)';
+        toast.style.padding = '12px 18px';
+        toast.style.fontSize = '1rem';
+        toast.style.maxWidth = '320px';
+        toast.style.minWidth = '40px';
+        toast.style.display = 'inline-block';
+        toast.style.wordBreak = 'break-word';
+        toast.style.width = 'fit-content';
+        toast.style.margin = '0 0 0 0';
+        toast.style.opacity = (idx === 0 && visible.length === maxVisible) ? '0.5' : '0.97';
+        toast.style.transition = 'opacity 0.7s';
+        toast.innerHTML = `<b>${msg.name}</b>: ${msg.message}`;
+        toastContainer.appendChild(toast);
+    });
+}
+
+function startGuestbookCycle() {
+    if (cycleTimer) clearInterval(cycleTimer);
+    if (guestbookMessages.length > maxVisible) {
+        cycleTimer = setInterval(() => {
+            currentStart = (currentStart + 1) % (guestbookMessages.length - maxVisible + 1);
+            renderGuestbookToasts();
+        }, cycleInterval);
+    }
+}
+
+const q = query(collection(db, 'guestbook'), orderBy('created', 'desc'), limit(10));
+onSnapshot(q, (snapshot) => {
+    guestbookMessages = [];
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.name && data.message) {
+            guestbookMessages.push({ name: data.name, message: data.message });
+        }
+    });
+    guestbookMessages.reverse(); // oldest first, newest last
+    currentStart = 0;
+    renderGuestbookToasts();
+    startGuestbookCycle();
+});
+</script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Valerie's Corner</title>
+    <title>Valerie's Hideout</title>
+    <meta property="og:title" content="Valerie's Hideout" />
+    <meta property="og:description" content="Welcome to Valerie's Hideout! Game developer, artist, cat lover, and more." />
+    <!-- <meta property="og:image" content="images/og-image.png" /> -->
+    <meta property="og:url" content="https://itsonlyvalerie.github.io/" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Valerie's Hideout" />
+    <meta name="twitter:description" content="Welcome to Valerie's Hideout! Game developer, artist, cat lover, and more." />
+    <!-- <meta name="twitter:image" content="images/og-image.png" /> -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
         <button id="toggle-mode" style="position: absolute; top: 20px; right: 20px; z-index: 100; padding: 18px 22px; border-radius: 12px; border: none; background: transparent; color: #111; font-weight: bold; cursor: pointer; box-shadow: none; outline: none; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; width: 64px; height: 64px; transition: background 0.3s, color 0.3s;">
             <span id="toggle-icon" aria-hidden="true"></span>
         </button>
-    <h1>You found my corner of the web!</h1>
+    <h1 style="margin-bottom: 0;">Valerie's Hideout</h1>
+    <div id="typewriter-line" style="text-align:center;font-size:1.3rem;color:#1565c0;margin-bottom:24px;min-height:2.2em;"><span id="typewriter-symbol">✦</span> <span id="typewriter-text"></span><span id="typewriter-cursor">|</span></div>
+<script>
+// --- Typewriter effect for cycling experience ---
+const experiences = ["game developer", "artist", "cat lover", "web tinkerer", "music enjoyer"];
+const typewriterText = document.getElementById('typewriter-text');
+const typewriterCursor = document.getElementById('typewriter-cursor');
+const typewriterSymbol = document.getElementById('typewriter-symbol');
+let expIdx = 0;
+let charIdx = 0;
+let typing = true;
+
+function typeExperience() {
+    const current = experiences[expIdx];
+    if (typing) {
+        if (charIdx < current.length) {
+            typewriterText.textContent = current.slice(0, charIdx + 1);
+            charIdx++;
+            setTimeout(typeExperience, 70);
+        } else {
+            typing = false;
+            setTimeout(typeExperience, 1200);
+        }
+    } else {
+        if (charIdx > 0) {
+            charIdx--;
+            typewriterText.textContent = current.slice(0, charIdx);
+            setTimeout(typeExperience, 30);
+        } else {
+            typing = true;
+            expIdx = (expIdx + 1) % experiences.length;
+            setTimeout(typeExperience, 400);
+        }
+    }
+}
+if(typewriterText && typewriterCursor && typewriterSymbol) typeExperience();
+// Blinking cursor
+setInterval(() => {
+    if(typewriterCursor) typewriterCursor.style.opacity = typewriterCursor.style.opacity === '0' ? '1' : '0';
+}, 500);
+</script>
+        <div class="blog-box">
+            <div class="blog-title">My First Blog Post</div>
+            <div class="blog-date">October 7, 2025</div>
+            <div class="blog-content">Welcome to Valerie's Hideout! This is where I will be posting my blogs showcasing what I've been working on. Hope you enjoy your stay!</div>
+            <!--
+            Example for a new blog post (remember to put this above the existing posts):
+            <div class="blog-title">Your New Blog Title</div>
+            <div class="blog-date">Month Day, Year</div>
+            <div class="blog-content">Your new blog content goes here.</div>
+            -->
+        </div>
         <div class="wave">
             <svg id="background-wave-svg" width="100vw" height="560" viewBox="0 0 1440 560" xmlns="http://www.w3.org/2000/svg" style="display:block; position:absolute; left:0; bottom:0; z-index:1; width:100vw; margin:0; padding:0;" preserveAspectRatio="none">
                 <path id="background-wave-path" fill="#4fc3f7" d=""/>
@@ -69,5 +300,66 @@ function autoSetModeByTime() {
 
 autoSetModeByTime();
 updateToggleIcon();
+</script>
+<script>
+// --- Emoji Picker ---
+const emojiBtn = document.getElementById('emoji-picker-btn');
+const messageBox = document.getElementById('guestbook-message');
+const emojiList = ["😀","😁","😂","🤣","😊","😍","😎","😢","😭","😡","👍","👏","🙏","🎉","❤️","🔥","✨","🌈","🍀","🍕","🐱","🐶","🌸","⭐","🥺"];
+let emojiPickerDiv = null;
+
+if (emojiBtn && messageBox) {
+  emojiBtn.onclick = function(e) {
+    e.preventDefault();
+    if (emojiPickerDiv) {
+      emojiPickerDiv.remove();
+      emojiPickerDiv = null;
+      return;
+    }
+    emojiPickerDiv = document.createElement('div');
+    emojiPickerDiv.style.position = 'absolute';
+    emojiPickerDiv.style.bottom = '40px';
+    emojiPickerDiv.style.right = '0';
+    emojiPickerDiv.style.background = '#fff';
+    emojiPickerDiv.style.border = '1px solid #bbb';
+    emojiPickerDiv.style.borderRadius = '8px';
+    emojiPickerDiv.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)';
+    emojiPickerDiv.style.padding = '6px 8px';
+    emojiPickerDiv.style.display = 'flex';
+    emojiPickerDiv.style.flexWrap = 'wrap';
+    emojiPickerDiv.style.gap = '6px';
+    emojiPickerDiv.style.zIndex = '2000';
+    emojiList.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = emoji;
+      btn.style.fontSize = '1.2rem';
+      btn.style.background = 'transparent';
+      btn.style.border = 'none';
+      btn.style.cursor = 'pointer';
+      btn.onclick = function() {
+        // Insert emoji at cursor position
+        const start = messageBox.selectionStart;
+        const end = messageBox.selectionEnd;
+        const text = messageBox.value;
+        messageBox.value = text.slice(0, start) + emoji + text.slice(end);
+        messageBox.focus();
+        messageBox.selectionStart = messageBox.selectionEnd = start + emoji.length;
+        emojiPickerDiv.remove();
+        emojiPickerDiv = null;
+      };
+      emojiPickerDiv.appendChild(btn);
+    });
+    emojiBtn.parentElement.style.position = 'relative';
+    emojiBtn.parentElement.appendChild(emojiPickerDiv);
+  };
+}
+// Hide emoji picker if clicked outside
+window.addEventListener('mousedown', function(e) {
+  if (emojiPickerDiv && !emojiPickerDiv.contains(e.target) && e.target !== emojiBtn) {
+    emojiPickerDiv.remove();
+    emojiPickerDiv = null;
+  }
+});
 </script>
 </html>

@@ -1,12 +1,12 @@
 // Animated SVG wave inspired by react-wavify
 
-const amplitude = 14; // wave height
-const speed = 0.0012; // animation speed
+const amplitude = 9; // wave height (calmer)
+const speed = 0.0007; // animation speed (calmer)
 const points = 20; // number of control points
 const height = 560; // SVG height for foreground
 const bgHeight = 600; // SVG height for background
-const bgAmplitude = 10; // background wave height
-const bgSpeed = 0.0007; // animation speed for background wave
+const bgAmplitude = 7; // background wave height (calmer)
+const bgSpeed = 0.0005; // animation speed for background wave (calmer)
 
 function getWaveWidth() {
   return window.innerWidth;
@@ -77,7 +77,7 @@ function animateBothWaves() {
   const bgPath = document.getElementById('background-wave-path');
   const now = performance.now();
   if (path) path.setAttribute('d', generateWavePath(now));
-  if (bgPath) bgPath.setAttribute('d', generateWavePath(now, bgAmplitude, bgHeight, Math.PI/2, bgSpeed));
+  if (bgPath) bgPath.setAttribute('d', generateWavePath(now, bgAmplitude, bgHeight, Math.PI/6, bgSpeed));
   requestAnimationFrame(animateBothWaves);
 }
 

@@ -123,6 +123,16 @@ function containsBadLink(msg) {
     return false;
 }
 
+function containsProfanity(msg) {
+    for (const word of PROFANITIES) {
+        const regex = new RegExp(`\\b${word}\\b`, 'i');
+        if (regex.test(msg)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 form.onsubmit = async (e) => {
     e.preventDefault();
     errorDiv.style.display = 'none';

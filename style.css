@@ -114,3 +114,220 @@ body.dark-mode .wave #background-wave-path {
   margin: 0;
   padding: 0;
 }
+
+/* --- Desktop Icon Row --- */
+.desktop-center-row {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 48px;
+  width: auto;
+  z-index: 50;
+}
+#gallery-folder-btn, #browser-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 50;
+  margin: 0;
+}
+
+/* Icon and label alignment for desktop row */
+#gallery-folder-btn .folder-icon, #browser-btn .browser-icon {
+  width: 64px;
+  height: 64px;
+  display: block;
+  margin: 0 auto;
+}
+#gallery-folder-btn span, #browser-btn span {
+  display: block;
+  margin-top: 10px;
+  font-size: 1.2rem;
+  color: #222;
+  font-weight: bold;
+  text-shadow: 0 1px 2px #fff8;
+  text-align: center;
+}
+body.dark-mode #gallery-folder-btn span, body.dark-mode #browser-btn span {
+  color: #e3f2fd;
+  text-shadow: 0 1px 2px #2228;
+}
+.globe-icon-closed, .globe-icon-open {
+  display: block;
+  width: 64px;
+  height: 64px;
+}
+
+#browser-btn .browser-icon {
+  margin: -30px auto 24px auto;
+  /* border: 2px solid red; */
+  display: block;
+  width: 64px;
+  height: 64px;
+}
+.links-align {
+  margin-top: 0;
+}
+.links-align .browser-icon {
+  margin-top: 0;
+}
+.links-align span {
+  margin-top: 10px !important;
+}
+
+/* --- Browser Window Styles --- */
+#browser-window {
+  display: none;
+  position: fixed;
+  top: 28%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 600px;
+  min-width: 320px;
+  max-width: 95vw;
+  height: 420px;
+  background: #f5f7fa;
+  border: 2px solid #b0bec5;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  z-index: 2001;
+  overflow: hidden;
+}
+#browser-window .window-titlebar {
+  background: linear-gradient(90deg, #e3eafc 0%, #cfd8dc 100%);
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  cursor: move;
+  user-select: none;
+  border-bottom: 1px solid #b0bec5;
+}
+#browser-window .window-titlebar .window-title {
+  flex: 1;
+  font-weight: bold;
+  color: #222;
+  font-size: 1.1rem;
+}
+#browser-window .window-titlebar .window-close {
+  background: #e57373;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  transition: background 0.2s;
+}
+#browser-window .window-titlebar .window-close:hover {
+  background: #d32f2f;
+}
+#browser-window .window-content {
+  padding: 18px 24px;
+  height: calc(100% - 38px);
+  overflow-y: auto;
+  background: #fff;
+}
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+.links-grid a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #1976d2;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 12px 6px;
+  background: #f0f4ff;
+  box-shadow: 0 2px 8px #0001;
+  transition: background 0.2s, color 0.2s;
+}
+.links-grid a:hover {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+.links-grid .link-icon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 8px;
+}
+/* --- Gallery Window Styles --- */
+#gallery-window {
+  display: none;
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 520px;
+  min-width: 320px;
+  max-width: 90vw;
+  height: 400px;
+  background: #f5f7fa;
+  border: 2px solid #b0bec5;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  z-index: 2000;
+  overflow: hidden;
+}
+#gallery-window .window-titlebar {
+  background: linear-gradient(90deg, #e3eafc 0%, #cfd8dc 100%);
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  cursor: move;
+  user-select: none;
+  border-bottom: 1px solid #b0bec5;
+}
+#gallery-window .window-titlebar .window-title {
+  flex: 1;
+  font-weight: bold;
+  color: #222;
+  font-size: 1.1rem;
+}
+#gallery-window .window-titlebar .window-close {
+  background: #e57373;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  transition: background 0.2s;
+}
+#gallery-window .window-titlebar .window-close:hover {
+  background: #d32f2f;
+}
+#gallery-window .window-content {
+  padding: 18px;
+  height: calc(100% - 38px);
+  overflow-y: auto;
+  background: #fff;
+}
+body.dark-mode #gallery-folder-btn span {
+  color: #e3f2fd;
+  text-shadow: 0 1px 2px #2228;
+}

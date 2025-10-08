@@ -4,6 +4,185 @@ You are free to have a look around and maybe learn some stuff from it, but you a
 Because I put a lot of effort into making this site, and I want to keep it unique.
 If you want to make a similar site, please try to make it your own and not just copy mine. Thanks!
 -->
+<style>
+body.dark-mode #gallery-folder-btn span {
+    color: #e3f2fd;
+    text-shadow: 0 1px 2px #2228;
+}
+</style>
+<style>
+/* Centered folder button */
+#gallery-folder-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 50;
+}
+#gallery-folder-btn .folder-icon {
+    width: 64px;
+    height: 48px;
+    display: block;
+}
+#gallery-folder-btn span {
+    margin-top: 8px;
+    font-size: 1.2rem;
+    color: #222;
+    font-weight: bold;
+    text-shadow: 0 1px 2px #fff8;
+}
+
+/* Gallery window styles */
+#gallery-window {
+    display: none;
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translate(-50%, 0);
+    width: 520px;
+    min-width: 320px;
+    max-width: 90vw;
+    height: 400px;
+    background: #f5f7fa;
+    border: 2px solid #b0bec5;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    z-index: 2000;
+    overflow: hidden;
+}
+#gallery-window .window-titlebar {
+    background: linear-gradient(90deg, #e3eafc 0%, #cfd8dc 100%);
+    height: 38px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    cursor: move;
+    user-select: none;
+    border-bottom: 1px solid #b0bec5;
+}
+#gallery-window .window-titlebar .window-title {
+    flex: 1;
+    font-weight: bold;
+    color: #222;
+    font-size: 1.1rem;
+}
+#gallery-window .window-titlebar .window-close {
+    background: #e57373;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    transition: background 0.2s;
+}
+#gallery-window .window-titlebar .window-close:hover {
+    background: #d32f2f;
+}
+#gallery-window .window-content {
+    padding: 18px;
+    height: calc(100% - 38px);
+    overflow-y: auto;
+    background: #fff;
+}
+</style>
+<!-- Centered Gallery Folder Button -->
+<button id="gallery-folder-btn" title="Open Gallery">
+    <span class="folder-icon-closed">
+        <svg class="folder-icon" viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="16" width="60" height="28" rx="6" fill="#ffe082" stroke="#bfa040" stroke-width="2"/>
+            <path d="M6 16V10a4 4 0 0 1 4-4h16l6 10H6z" fill="#ffd54f" stroke="#bfa040" stroke-width="2"/>
+        </svg>
+    </span>
+    <span class="folder-icon-open" style="display:none;">
+        <svg class="folder-icon" viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="24" width="60" height="20" rx="6" fill="#ffe082" stroke="#bfa040" stroke-width="2"/>
+            <path d="M6 24L12 10a4 4 0 0 1 4-2h16l6 12h20a4 4 0 0 1 4 4v4H6z" fill="#ffd54f" stroke="#bfa040" stroke-width="2"/>
+        </svg>
+    </span>
+    <span>Gallery</span>
+</button>
+
+<!-- Gallery Window Popup -->
+<div id="gallery-window">
+    <div class="window-titlebar">
+        <span class="window-title">Gallery</span>
+        <button class="window-close" title="Close">&#10005;</button>
+    </div>
+    <div class="window-content">
+        <p style="color:#888;text-align:center;margin-top:120px;">Artwork content goes here!</p>
+    </div>
+</div>
+<script>
+// Gallery folder button and window logic
+const galleryBtn = document.getElementById('gallery-folder-btn');
+const galleryWindow = document.getElementById('gallery-window');
+const galleryClose = galleryWindow.querySelector('.window-close');
+const galleryTitlebar = galleryWindow.querySelector('.window-titlebar');
+const folderClosed = galleryBtn.querySelector('.folder-icon-closed');
+const folderOpen = galleryBtn.querySelector('.folder-icon-open');
+
+function setFolderOpenState(isOpen) {
+    if (isOpen) {
+        folderClosed.style.display = 'none';
+        folderOpen.style.display = '';
+    } else {
+        folderClosed.style.display = '';
+        folderOpen.style.display = 'none';
+    }
+}
+
+galleryBtn.onclick = () => {
+    if (galleryWindow.style.display === 'block') {
+        galleryWindow.style.display = 'none';
+        setFolderOpenState(false);
+    } else {
+        galleryWindow.style.display = 'block';
+        galleryWindow.style.zIndex = 2000;
+        setFolderOpenState(true);
+    }
+};
+galleryClose.onclick = () => {
+    galleryWindow.style.display = 'none';
+    setFolderOpenState(false);
+};
+
+// Draggable window logic
+let isDragging = false, dragOffsetX = 0, dragOffsetY = 0;
+galleryTitlebar.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    const rect = galleryWindow.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+    document.body.style.userSelect = 'none';
+});
+document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    let x = e.clientX - dragOffsetX;
+    let y = e.clientY - dragOffsetY;
+    // Keep window within viewport
+    x = Math.max(0, Math.min(window.innerWidth - galleryWindow.offsetWidth, x));
+    y = Math.max(0, Math.min(window.innerHeight - galleryWindow.offsetHeight, y));
+    galleryWindow.style.left = x + 'px';
+    galleryWindow.style.top = y + 'px';
+    galleryWindow.style.transform = 'none';
+});
+document.addEventListener('mouseup', function() {
+    isDragging = false;
+    document.body.style.userSelect = '';
+});
+</script>
 </div>
 <!-- Guestbook Floating Button and Form -->
 <button id="guestbook-btn" style="position:fixed;bottom:32px;right:32px;z-index:1000;background:#1976d2;color:#fff;border:none;border-radius:50%;width:56px;height:56px;box-shadow:0 2px 12px rgba(0,0,0,0.18);font-size:2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.3s;">
@@ -323,7 +502,7 @@ onSnapshot(q, (snapshot) => {
     <div id="typewriter-line" style="text-align:center;font-size:1.3rem;color:#1565c0;margin-bottom:24px;min-height:2.2em;"><span id="typewriter-symbol">✦</span> <span id="typewriter-text"></span><span id="typewriter-cursor">|</span></div>
 <script>
 // --- Typewriter effect for cycling experience ---
-const experiences = ["game developer", "artist", "cat lover", "web tinkerer", "music enjoyer"];
+const experiences = ["game developer", "artist", "character designer","cat lover", "web tinkerer", "music enjoyer"];
 const typewriterText = document.getElementById('typewriter-text');
 const typewriterCursor = document.getElementById('typewriter-cursor');
 const typewriterSymbol = document.getElementById('typewriter-symbol');
